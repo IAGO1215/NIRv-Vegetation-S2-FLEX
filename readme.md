@@ -66,4 +66,6 @@ The default threshold of CV is 0.5.
 
 # Output
 
-# 
+# Credits
+
+DISAT Gruppo Telerilevamento, Università degli Studi Milano-Bicocca
