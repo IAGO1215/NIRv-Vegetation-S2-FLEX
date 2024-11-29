@@ -1,5 +1,11 @@
 __pycache__/
 Input S2 Images/
 Cache/
+FLEX/
 
+
+Input Fake FLEX Images/
+
+*.ipynb
+*.qgz
 Sentinel-2-NIRv.code-workspace

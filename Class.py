@@ -3,10 +3,12 @@ from bs4 import BeautifulSoup
 import math
 import numpy as np
 import shapely as shp
+from shapely.geometry import Point
 import pandas as pd
 import geopandas as gpd
 import rasterio as rio
 import rasterio.mask
+from scipy.spatial import cKDTree
 
 class CALVALPrototype:
     # Initialization
@@ -26,7 +28,7 @@ class CALVALPrototype:
         # The absolute path of the S2 images
         self.path_Image = self.path_Main + "\\Input S2 Images"
         # The absolute path to the input .csv file, where the info of all sites are saved. 
-        self.path_SiteCSV = self.path_Main + "\\Site.csv"
+        self.path_SiteCSV = self.path_Main + "\\Site_S2.csv"
         # The absolute path to the folder, where interim files are saved. If you want to modify this path, be cautious. 
         self.path_Cache = self.path_Main + "\\Cache"
         # The absolute path to the folder of "Main - Optional Input.ini"
@@ -305,3 +307,104 @@ class CALVALPrototype:
             return 1
         else:
             return 0
+        
+class FakeFLEX:
+    # Initialization
+    def __init__(self):
+
+        # The path to some essential folders and files. Don't modify these unless you know what you are going to do. 
+        # The absolute path of the current working directory
+        self.path_Main = os.path.realpath(os.path.dirname(__file__))
+        # The absolute path of the output
+        self.path_Output = self.path_Main + "\\Output"
+        # The absolute path of the fake FLEX images
+        self.path_Original = self.path_Main + "\\Input Fake FLEX Images\\Original"
+        self.path_Resampled = self.path_Main + "\\Input Fake FLEX Images\\Resampled"
+        # The absolute path to the input .csv file, where the info of all sites are saved. 
+        self.path_SiteCSV = self.path_Main + "\\Site_FLEX.csv"
+
+    @property
+    def threshold_CV(self):
+        return self._threshold_CV
+    @property
+    def area(self):
+        return self._area
+    @property
+    def cloud(self):
+        return self._cloud
+
+        # Get names, lat, lon of all sites from .csv file, returning a pandas dataframe
+    def get_SiteInfo(self):
+        temp_CSV = pd.read_csv(self.path_SiteCSV)
+        temp_SiteName = list(temp_CSV["Site"])
+        temp_SiteLat = list(temp_CSV["Latitude"])
+        temp_SiteLon = list(temp_CSV["Longitude"])
+        if len(temp_SiteName) == len(temp_SiteLat) == len(temp_SiteLon):
+            return temp_CSV
+        else:
+            print("User Error: Please make sure there is no missing data in the .csv file!")
+            return
+        
+    def create_SiteShp(self, lat,lon):
+        df = pd.DataFrame({
+            "Latitude": [lat],
+            "Longitude": [lon]
+        })
+        gdf = gpd.GeoDataFrame(
+            data = [[0]],
+            crs = "EPSG:4326",
+            geometry=gpd.points_from_xy(df['Longitude'],df['Latitude'])
+        )
+        return gdf
+
+    def create_NCShp(self, veg, np_lat, np_lon):
+
+        df = pd.DataFrame({
+            "Veg": veg.reshape(-1),
+            "Latitude": np_lat.reshape(-1),
+            "Longitude": np_lon.reshape(-1)
+        })
+        gdf = gpd.GeoDataFrame(
+            data = df,
+            crs = "EPSG:4326",
+            geometry=gpd.points_from_xy(df['Longitude'],df['Latitude'])
+        )
+        return gdf
+    
+    def findNearestPoint(self, gdfA, gdfB):
+
+        nA = np.array(list(gdfA.geometry.apply(lambda x: (x.x, x.y))))
+        nB = np.array(list(gdfB.geometry.apply(lambda x: (x.x, x.y))))
+        btree = cKDTree(nB)
+        dist, idx = btree.query(nA, k=1)
+        gdfB_nearest = gdfB.iloc[idx].drop(columns="geometry").reset_index(drop=True)
+        gdf = pd.concat(
+            [
+                gdfA.reset_index(drop=True),
+                gdfB_nearest,
+                pd.Series(dist, name='dist')
+            ], 
+            axis=1)
+
+        return gdf
+    
+    # Find the pixel where the site is located
+    def locateSite(self, gdf,lat,lon):
+        lat_Site = gdf['Latitude'].values
+        lon_Site = gdf['Longitude'].values
+        for m in range(1000):
+            for n in range(1000):
+                if (lat[m][n] == lat_Site) and (lon[m][n] == lon_Site):
+                    index_1 = m
+                    index_2 = n
+                    break
+        index_1_Resampled = index_1 // 10
+        index_2_Resampled = index_2 // 10
+        print(f"The site falls on {index_1} row and {index_2} column!")
+        return index_1, index_2, index_1_Resampled, index_2_Resampled
+    
+    def cal_Veg(self, veg, index_1, index_2):
+        veg_ROI = veg[(index_1 - 15):(index_1 + 16), (index_2 - 15):(index_2 + 16)]
+        # veg = 1 is vegetation pixel
+        veg_Count = sum(veg_ROI.reshape(-1))
+        return veg_Count
