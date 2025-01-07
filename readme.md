@@ -31,7 +31,7 @@ Or simply download the source code of this GitHub repo and unzip the file to the
 
 ## 2. Install all required python packages
 
-In order to run the code, it's necessary to install all the required packages. 
+In order to run the code, it's necessary to install all the required python packages. 
 
 ### 2-1. For conda users
 
@@ -75,24 +75,39 @@ You should keep each name of sites unique.
 If there are multiple pairs of Sentinel-2 images for the same site, you can add some prefix or suffix to the name of the sites.  
 For example, if there are two dates of Sentinel-2 images for the site San Rossore, you should write "San Rossore Date 1" and "San Rossore Date 2" as the names of the sites. 
 
-### 2. Download Sentinel-2 L1C and L2A Raw Images
-#### 2.1 Download Sentinel-2 raw images on Copernicus Broswer
+### 2. Download FLEX Images
+
+Open "Input FLEX Images" and create sub-folders using the names you have written in "Site.csv".  
+Then in each sub-folder, put your FLEX images inside, whose names are expected to be in the format YYYYMMDD + T + HHMMSS, such as "20230821T100601".  (You can refer to the "Folder Structure" section in this Readme file) 
+
+
+### 3. Download Sentinel-2 L1C and L2A Raw Images
+#### 3.1 Download Sentinel-2 raw images on Copernicus Broswer
 
 You can only use raw Sentinel-2 images downloaded from [Copernicus Broswer](https://browser.dataspace.copernicus.eu/) as input images.  
 Whenever you download images, you should always make sure that you download both L1C and L2A images that have the same date and cover the same area (check their codes before downloading). 
 
-#### 2.2 Create sub-folders to keep the downloaded images
+#### 3.2 Create sub-folders to keep the downloaded images
 
 Open "Input S2 Images" and create sub-folders using the names you have written in "Site.csv".  
-Then in each sub-folder, create two folders named "L1C" and "L2A".  
-I also provide a supplementary python code that can automate this process. Simply run "Batch create subfolders.py" and then you are good to go. 
+Then in each sub-folder, create another sub-folder in format YYYYMMDD + T + HHMMSS, such as "20230821T100601", and inside it create another two folders named "L1C" and "L2A".  (You can refer to the "Folder Structure" section in this Readme file)  
 
-#### 2.3 Unzip downloaded images and put them into correct sub-folders
+#### 3.3 Unzip downloaded images and put them into correct sub-folders
 
 Just do what the title of this part says. 
 
 ## Optional Input
-### 1. Threshold of Coefficient of Variation
+
+### 1. Threshold of Vegetation Pixel
+The default threshold of vegetation pixel is 0.5.  
+Users can adjust the threshold of vegetation pixel optionally. This threshold will be used to determine whether a FLEX image will be kept. 
+#### Set a new threshold for Vegetation Pixel
+1.1 Open "Optional Input.ini" in a text editor and find the line "threshold_Vegetation = ".  
+1.2 Enter a new threshold at the end of this line. The threshold must be a positive number.  
+1.3 Save the "Optional Input.ini".  
+1.4 If you want to set this threshold back to default, just remove the entered value and leave it empty just as before. 
+
+### 2. Threshold of Coefficient of Variation
 The default threshold of coefficient of variation (CV) is 0.2.  
 Users can adjust the threshold of CV optionally. The code will flag the values not greater than this threshold as 1, and the values greater than this threshold as 0.   
 #### Set a new threshold for CV
@@ -101,7 +116,7 @@ Users can adjust the threshold of CV optionally. The code will flag the values n
 1.3 Save the "Optional Input.ini".  
 1.4 If you want to set this threshold back to default, just remove the entered value and leave it empty just as before. 
 
-### 2. Maximum Cloud Coverage
+### 3. Maximum Cloud Coverage
 The default threshold of maximum cloud coverage is 0.5.  
 Users can adjust the threshold of maximum cloud coverage optionally. The code will not proceed the images whose cloud coverage is greater than this threshold, and hence not calculate the CV and add flags. 
 #### Set a new threshold for maximum cloud coverage
@@ -110,7 +125,7 @@ Users can adjust the threshold of maximum cloud coverage optionally. The code wi
 2.3 Save the "Optional Input.ini".  
 2.4 If you want to set this threshold back to default, just remove the entered value and leave it empty just as before. 
 
-### 3. Size of Region of Interest
+### 4. Size of Region of Interest
 The default region of interest (ROI) is a 900mx900m squared area. 
 Users can set the size of the squared ROI.  
 Other shapes of ROI are not supported. 
@@ -120,7 +135,7 @@ Other shapes of ROI are not supported.
 3.3 Save the "Optional Input.ini".  
 3.4 If you want to set the size of the ROI back to default, just remove the entered value and leave it empty just as before. 
 
-### 4. Keep Cache Folder upon Completion
+### 5. Keep Cache Folder upon Completion
 During the process there will be a temporary folder named "Cache" created to save some intermediate files.  
 By default, this folder will be delete permanently upon the completion of the code. 
 
@@ -132,54 +147,64 @@ By default, this folder will be delete permanently upon the completion of the co
 
 # Example
 
-## 1. Download Example S2 Images and Unzip
+## 1. Download Example FLEX + S2 Images and Unzip
 
-Download five images from this [link](https://drive.google.com/file/d/1KG2Ifpp80LRS1XWY4D5PfzD-879_nfGp/view?usp=sharing) and unzip the file to the root folder of this source code. The size of the file is 7GB because all of them are unmodified raw S2 images downloaded from Copernicus Browser. 
+Download five images from this XXXXXXXX and unzip the file to the root folder of this source code. The size of the file is 7GB because all of them are unmodified raw S2 images downloaded from Copernicus Browser. 
 
 ## 2. Check "Site.csv"
 
 If you haven't modified this .csv file, make a backup of it. The example will use the default "Site.csv", as shown below:
 
-| Site          | Latitude  | Longitude |
-|---------------|-----------|-----------|
-| FR-FBn        | 43.24079  | 5.67865   |
-| GF-GUY Clouds | 5.2787    | -52.9248  |
-| IT-BFt        | 45.197754 | 10.741966 |
-| IT-SR2        | 43.732    | 10.291    |
-| IT-SR2 Clouds | 43.732    | 10.291    |
+| Site            | Latitude  | Longitude |
+|-----------------|-----------|-----------|
+| castelPorziano  | 41.7043   | 12.3573   |
+| JolandaDiSavoia | 44.874305 | 11.979201 |
+| Nebraska        | 41.1797   | -96.44039 |
+| SanRossore      | 43.732    | 10.291    |
 
 ## 3. Run "Main.py"
 
 Open "Main.py" in your preferred IDE and run it. 
 
-## 4. Open Output
+## 4. Open Output Folder
 
-You can find the output file named "Output.csv" in "Output" folder. Its content should be exactly the same as that in "Example_Output.csv", as shown below: 
+You can find the output files in "Output" folder.  
 
-| Site          | Valid Pixels L1C | Valid Pixels L2A | Valid Pixels Percentage L1C | Valid Pixels Percentage L2a | CV                  | Flag |
-|---------------|------------------|------------------|-----------------------------|-----------------------------|---------------------|------|
-| FR-FBn        | 8100.0           | 8100.0           | 1.0                         | 1.0                         | 0.16534960486724762 | 1.0  |
-| GF-GUY Clouds | 2550.0           | 2550.0           | 0.3079338244173409          | 0.3079338244173409          |                     |      |
-| IT-BFt        | 8100.0           | 8100.0           | 1.0                         | 1.0                         | 0.19972333349756258 | 1.0  |
-| IT-SR2        | 8100.0           | 8100.0           | 1.0                         | 1.0                         | 0.2513329617906446  | 0.0  |
-| IT-SR2 Clouds | 0.0              | 0.0              | 0.0                         | 0.0                         |                     |      |
+### 1. Usable FLEX Images.csv
+
+This file contains the filenames, dates and times of all FLEX images whose vegetation pixels inside the ROI are greater than the threshold. 
+
+### 2. Output_S2.csv
+
+This file is the result of the process of all Sentinel-2 images, containing valid pixels, values of CV and flags. 
+
+### 3. SiteName\... - sif.csv
+
+For each input FLEX image there will be a .csv file, containing the values of the average and the standard deviation of sif. 
 
 # Folder Structure
 
 Sentinel-2-NIRv  
 ├── Cache  
+├── Input FLEX Images  
+│ ├── Site 1  
+│ │ ├── Image1.nc --- In format PRS_TD_ + YYYYMMDD_HHMMSS, such as "PRS_TD_20230616_101431.nc"  
+│ │ ├── Image2.nc  
+│ │ ├── ...  
+│ ├── Site 2  
+│ ├── Site ...  
 ├── Input S2 Images  
 │ ├── Site 1  
-│ │ ├── L1C  
-│ │ │ ├── Unzipped S2 Raw Files  
-│ │ ├── L2A  
-│ │ │ ├── Unzipped S2 Raw Files  
+│ │ ├── $DateTTime --- In format YYYYMMDD + T + HHMMSS, such as "20230821T100601"  
+│ │ │ ├── L1C  
+│ │ │ │ ├── Unzipped S2 Raw Files  
+│ │ │ ├── L2A  
+│ │ │ │ ├── Unzipped S2 Raw Files  
 │ ├── Site 2  
 │ ├── Site ...  
 ├── Output  
 │ │ ├── Output.csv  
 ├── .gitignore  
-├── Batch create subfolders.py  
 ├── Class.py    
 ├── Example_prototype.docx    
 ├── Main.py    
@@ -187,6 +212,30 @@ Sentinel-2-NIRv
 ├── readme.md    
 ├── requirements.txt    
 ├── Site.csv    
+
+# Troubleshooting
+
+## 1. Error "Found the following matches with the input file in xarray's IO backends: ['netcdf4','h5netcdf']. But their dependency may not be installed"
+
+Install: 
+
+```
+pip install netCDF4
+````    
+
+If the error persists, also install:
+
+```
+pip install h5netcdf
+```
+
+## 2. Error "Couldn't find a tree builder with the features you requested: xml" or "Couldn't find a tree builder with the features you requested: lxml"
+
+Install:
+
+```
+pip install lxml
+```
 
 # Authors
 
