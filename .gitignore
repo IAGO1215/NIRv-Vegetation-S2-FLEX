@@ -2,10 +2,14 @@ __pycache__/
 Input S2 Images/
 Cache/
 FLEX/
-
-
+Input FLEX Images/
 Input Fake FLEX Images/
 
+*_Fake.py
 *.ipynb
 *.qgz
+*.zip
+
+Site_S2.csv
+Batch create subfolders.py
 Sentinel-2-NIRv.code-workspace
