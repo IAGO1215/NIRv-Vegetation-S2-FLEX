@@ -1,7 +1,13 @@
 # Project Introduction
-The objective of this CAL/VAL prototype is to calculate coefficients of variation (CV) of regions of interest (ROI) centred at field sites, using Sentinel-2 (S2) images.  
-First, this prototype checks the cloud coverage inside ROIs, and if the cloud coverage is below a specific threshold, it performs calculation of CV, and flags whether the CV is not greater than a given threshold, 1 if true and 0 if false.  
-The final output is a .csv file, containing names of site, numbers of valid pixels, percentages of valid pixels, values of CV and the corresponding flags.  
+The objective of this CAL/VAL prototype is to calculate coefficients of variation (CV) of regions of interest (ROI) centred at field sites, using Sentinel-2 (S2) L1C and L2A images and FLEX images. 
+
+First, this prototype processes all FLEX images and calculates the average and the standard deviation of the value “Sif Emission Spectrum“ inside the ROI. Besides, it will extract the date and the time of the FLEX images whose vegetation pixels inside the ROI are greater than a threshold.
+ 
+After the process of FLEX images, this prototype will search for S2 images whose dates and time are the same to that of FLEX images; if there are not the same ones, it will find the S2 images with the nearest dates and time. Then, it will check the cloud coverage inside ROIs, and if it is below a specific threshold, it performs calculation of CV, and flags whether the CV is not greater than a given threshold, 1 if true and 0 if false. Otherwise, the S2 image will be skipped. 
+
+The final output files are unanimously in .csv format. For FLEX images, this prototype will generate a .csv file for each FLEX image containing the average and the standard deviation of the value “Sif Emission Spectrum“ inside the ROI. After processing all FLEX images, it will create a single .csv file to record the dates and the time of the FLEX images that have sufficient vegetation pixels inside the ROI. 
+For the output of S2 images, it contains names of site, numbers of valid pixels, percentages of valid pixels, values of CV and the corresponding flags. For the output of FLEX images, if a site has sufficient vegetation pixels in its ROI, then this prototype will generate two .csv files, one containing vegetation pixels percentage and another containing the average and standard deviation values of all bands; otherwise, this prototype will generate only one .csv file, containing vegetation pixels percentage. 
+
 
 # Required Python Packages
 
