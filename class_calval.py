@@ -172,9 +172,36 @@ class FLEX(CalVal):
         temp_list_SIF_AVG = []
         temp_list_SIF_STD = []
         temp_ds = xr.open_dataset(os.path.join(self._path_input, site_name, filename))
-        temp_Name_Var = list(temp_ds.data_vars)
+        temp_name_rar = list(temp_ds.data_vars)
 
-        for var_name in temp_Name_Var:
+        for var_name in temp_name_rar:
+            if "Sif Emission Spectrum_sif_wavelength_grid" in var_name:
+                temp_array = temp_ds[var_name][(temp_index_x-1):(temp_index_x+2),(temp_index_y-1):(temp_index_y+2)].values
+                temp_list_SIF_Name.append(var_name)
+                temp_AVG = np.average(temp_array).item()
+                temp_list_SIF_AVG.append(temp_AVG)
+                temp_STD = np.std(temp_array).item()
+                temp_list_SIF_STD.append(temp_STD)
+        temp_df_SIF = pd.DataFrame({
+            "SIF": temp_list_SIF_Name,
+            "Average": temp_list_SIF_AVG,
+            "STD": temp_list_SIF_STD
+        })
+        temp_df_SIF.to_csv(os.path.join(self._path_output,site_name,filename + " - Sif.csv"), index = False)
+
+    def cal_SIF_avg(self, site_name, filename, site_lon, site_lat):
+        temp_ds = rio.open(f'netcdf:{os.path.join(self._path_input,site_name,filename)}:Leaf Area Index')
+        # Get the pixel where there is the site
+        temp_index_x, temp_index_y = temp_ds.index(site_lon,site_lat)
+        # print(f"FLEX image '{temp_FLEX_filename}' opened succesfully!")
+
+        temp_list_SIF_Name = []
+        temp_list_SIF_AVG = []
+        temp_list_SIF_STD = []
+        temp_ds = xr.open_dataset(os.path.join(self._path_input, site_name, filename))
+        temp_name_rar = list(temp_ds.data_vars)
+
+        for var_name in temp_name_rar:
             if "Sif Emission Spectrum_sif_wavelength_grid" in var_name:
                 temp_array = temp_ds[var_name][(temp_index_x-1):(temp_index_x+2),(temp_index_y-1):(temp_index_y+2)].values
                 temp_list_SIF_Name.append(var_name)
