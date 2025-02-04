@@ -43,7 +43,6 @@ class S2:
                 print("The cache files will be saved in the following folder: " + self.path_Cache)
 
         if not os.path.exists(self.path_Output):
-            print("Creating cache folder")
             os.makedirs(self.path_Output)
 
         def cache_Folder():

@@ -9,6 +9,7 @@ Input Fake FLEX Images/
 *.ipynb
 *.qgz
 *.zip
+*.doc
 
 Site_S2.csv
 Batch create subfolders.py
