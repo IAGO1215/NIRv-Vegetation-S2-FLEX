@@ -112,12 +112,15 @@ class FLEX(CalVal):
 
         # Check input flex images folder
         self.__check_input()
+    # ------------------------------ Private Methods ----------------------------- #
 
     def __check_input(self):
         if not os.path.exists(self._path_input):
             raise FileNotFoundError(f"The working directory {self._path_main} doesn't contain the 'Input FLEX Images' Folder!")
         if not bool(os.listdir(self._path_input)):
             raise FileNotFoundError(f"There is no FLEX image found inside the 'Input FLEX Images' folder!")
+        
+    # ----------------------------- Protected Members ---------------------------- #
 
     # Getter for FLEX image resolution
     @property
@@ -155,11 +158,12 @@ class FLEX(CalVal):
             raise ValueError("The ROI must contain complete pixels!")
         self._area_ROI = value
 
+    # ------------------------------ Public Methods ------------------------------ #
     ## Check file name convention
     # PRS_TD_20230616_101431.nc 
     def check_filename(self, filename):
         if not re.fullmatch(r"^PRS_TD_\d{8}_\d{6}\.nc$", filename):
-            raise ValueError(f"The filename '{filename}' is not correct!")
+            raise ValueError(f"The filename '{filename}' is not correct! It should have the same format as 'PRS_TD_20230616_101431.nc'!")
     
     ## SIF Calculation
     def cal_SIF(self, site_name, filename, site_lon, site_lat):
@@ -168,51 +172,24 @@ class FLEX(CalVal):
         temp_index_x, temp_index_y = temp_ds.index(site_lon,site_lat)
         # print(f"FLEX image '{temp_FLEX_filename}' opened succesfully!")
 
-        temp_list_SIF_Name = []
-        temp_list_SIF_AVG = []
-        temp_list_SIF_STD = []
+        temp_list_SIF_name = []
+        temp_list_SIF_avg = []
+        temp_list_SIF_std = []
         temp_ds = xr.open_dataset(os.path.join(self._path_input, site_name, filename))
         temp_name_rar = list(temp_ds.data_vars)
 
         for var_name in temp_name_rar:
             if "Sif Emission Spectrum_sif_wavelength_grid" in var_name:
                 temp_array = temp_ds[var_name][(temp_index_x-1):(temp_index_x+2),(temp_index_y-1):(temp_index_y+2)].values
-                temp_list_SIF_Name.append(var_name)
+                temp_list_SIF_name.append(var_name)
                 temp_AVG = np.average(temp_array).item()
-                temp_list_SIF_AVG.append(temp_AVG)
+                temp_list_SIF_avg.append(temp_AVG)
                 temp_STD = np.std(temp_array).item()
-                temp_list_SIF_STD.append(temp_STD)
+                temp_list_SIF_std.append(temp_STD)
         temp_df_SIF = pd.DataFrame({
-            "SIF": temp_list_SIF_Name,
-            "Average": temp_list_SIF_AVG,
-            "STD": temp_list_SIF_STD
-        })
-        temp_df_SIF.to_csv(os.path.join(self._path_output,site_name,filename + " - Sif.csv"), index = False)
-
-    def cal_SIF_avg(self, site_name, filename, site_lon, site_lat):
-        temp_ds = rio.open(f'netcdf:{os.path.join(self._path_input,site_name,filename)}:Leaf Area Index')
-        # Get the pixel where there is the site
-        temp_index_x, temp_index_y = temp_ds.index(site_lon,site_lat)
-        # print(f"FLEX image '{temp_FLEX_filename}' opened succesfully!")
-
-        temp_list_SIF_Name = []
-        temp_list_SIF_AVG = []
-        temp_list_SIF_STD = []
-        temp_ds = xr.open_dataset(os.path.join(self._path_input, site_name, filename))
-        temp_name_rar = list(temp_ds.data_vars)
-
-        for var_name in temp_name_rar:
-            if "Sif Emission Spectrum_sif_wavelength_grid" in var_name:
-                temp_array = temp_ds[var_name][(temp_index_x-1):(temp_index_x+2),(temp_index_y-1):(temp_index_y+2)].values
-                temp_list_SIF_Name.append(var_name)
-                temp_AVG = np.average(temp_array).item()
-                temp_list_SIF_AVG.append(temp_AVG)
-                temp_STD = np.std(temp_array).item()
-                temp_list_SIF_STD.append(temp_STD)
-        temp_df_SIF = pd.DataFrame({
-            "SIF": temp_list_SIF_Name,
-            "Average": temp_list_SIF_AVG,
-            "STD": temp_list_SIF_STD
+            "SIF": temp_list_SIF_name,
+            "Average": temp_list_SIF_avg,
+            "STD": temp_list_SIF_std
         })
         temp_df_SIF.to_csv(os.path.join(self._path_output,site_name,filename + " - Sif.csv"), index = False)
 
@@ -234,6 +211,8 @@ class S2(CalVal):
         self.__check_input()
         self.__check_FLEX()
 
+    # ------------------------------ Private Methods ----------------------------- #
+
     def __check_input(self):
         if not os.path.exists(self._path_input):
             raise FileNotFoundError(f"The working directory {self._path_main} doesn't contain the 'Input S2 Images' Folder!")
@@ -244,6 +223,8 @@ class S2(CalVal):
         if not os.path.exists(os.path.join(self._path_output,"Usable FLEX Images.csv")):
             raise FileNotFoundError("There is no available FLEX image found ")
         
+    # ------------------------------ Private Members ----------------------------- #
+
     # Getter
     @property
     def s2_resolution(self):
@@ -253,6 +234,8 @@ class S2(CalVal):
     def s2_resolution(self, value):
         if value:
             raise AttributeError("Cannot modify the spatial resolution of Sentinel-2 images!")
+
+    # ----------------------------- Protected Members ---------------------------- #
 
     # Getter 
     @property
@@ -292,11 +275,11 @@ class S2(CalVal):
             raise ValueError("The cloud coverage must be between 0 and 1!!!")
         self._cloud = value
 
-    def create_cache_folder(self,path):
+    # ------------------------------ Public Methods ------------------------------ #
+    def create_cache_subfolder(self,path):
         temp = os.path.join(self._path_cache,path)
         if not os.path.exists(temp):
             os.makedirs(temp)
-        
     # Get paths to S2 images and mask images. In this case we need B8 image of L1C and B4, B8 images of L2A
     def get_path_images(self, path_S2_image):
         # L1C
@@ -397,7 +380,7 @@ class S2(CalVal):
         temp_NDVI = ((values_L2A_B08 + offset_L2A_B08).astype(float) / quantification_L2A - (values_L2A_B04 + offset_L2A_B04).astype(float) / quantification_L2A) / ((values_L2A_B08 + offset_L2A_B08).astype(float) / quantification_L2A + (values_L2A_B04 + offset_L2A_B04).astype(float) / quantification_L2A )
         return temp_NDVI
     
-    def cal_L1C_Rad(self, path_L1C_xml_DS, path_L1C_xml_TL, values_L1C_B08):
+    def cal_L1C_rad(self, path_L1C_xml_DS, path_L1C_xml_TL, values_L1C_B08):
         with open(path_L1C_xml_DS, 'r') as f:
             data = f.read()
         BS_L1C_dS = BeautifulSoup(data, "xml")
@@ -490,7 +473,7 @@ class S2(CalVal):
     def cal_CV(self, value):
         return np.std(value) / np.mean(value)
     
-    def cal_Flag(self, value):
+    def cal_flag(self, value):
         if value <= self._threshold_CV:
             return 1
         else:

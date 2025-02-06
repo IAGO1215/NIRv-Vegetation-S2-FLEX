@@ -11,12 +11,12 @@ import pandas as pd
 import rasterio as rio
 # Don't remove rasterio.mask this package otherwise it could cause errors
 import rasterio.mask
-import xarray as xr
 
 # ---------------------------------------------------------------------------- #
 #                                 Import Class                                 #
 # ---------------------------------------------------------------------------- #
 from class_calval import FLEX, S2
+from class_SIF_calculation import SIF
     
 # ---------------------------------------------------------------------------- #
 #                                   Main Code                                  #
@@ -27,8 +27,9 @@ def main():
     print("Code starts!")
     # Initiate classes
     flex = FLEX()
+    sif = SIF()
 
-    # ---------------------------- Read Optional Input --------------------------- #
+    # -------------------------------- FLEX Images ------------------------------- #
     config = configparser.ConfigParser()
     # Read optional input
     config.read(flex._path_optional)
@@ -47,7 +48,6 @@ def main():
     if not bool_optional_input:
         print("No optional input found for FLEX images. The code will use the default values!")
 
-    # -------------------------------- FLEX Images ------------------------------- #
     # Read Sites.csv
     df_site = flex.get_site_info()
     print("Starting to proceed all FLEX images!")
@@ -99,6 +99,7 @@ def main():
 
             # Calculation of SIF
             flex.cal_SIF(temp_site_name, temp_FLEX_filename, temp_site_lon, temp_site_lat)
+            sif.SIF_avg_output(temp_site_name, temp_FLEX_filename, temp_site_lon, temp_site_lat)
             print(f"The FLEX image {temp_FLEX_filename} has been processed!")
 
         print(f"All the FLEX image(s) of the site {temp_site_name} has been processed!")
@@ -157,11 +158,11 @@ def main():
                         temp_timediff_final = temp_timediff
                         temp_S2_image_final = temp_S2_image
             print(f"S2 image {temp_S2_image_final} has the nearest date and time to the FLEX image {temp_FLEX_filename}")
-            list_FLEXName.append(temp_FLEX_filename)
+            list_FLEX_name.append(temp_FLEX_filename)
             print(f"The calculation and validation of the S2 image {temp_S2_image_final} of the site {temp_site_name} has started! ")
             # Get paths to B8 of L1C and B4, B8 of L2A
             temp_S2_image_path = os.path.join(temp_site_name,temp_S2_image_final)
-            s2.create_cache_folder(temp_S2_image_path)
+            s2.create_cache_subfolder(temp_S2_image_path)
             path_L1C_B08_raw, path_L2A_B04_raw, path_L2A_B08_raw, path_L1C_mask, path_L2A_mask, path_L1C_xml_DS, path_L1C_xml_TL, path_L2A_xml_DS = s2.get_path_images(temp_S2_image_path)
             # Read images
             image_L1C_B08 = rio.open(path_L1C_B08_raw)
@@ -194,7 +195,7 @@ def main():
             if temp_PassL1C and temp_PassL2A:
                 # NDVI, Rad, NIRv
                 temp_NDVI = s2.cal_L2A_NDVI(path_L2A_xml_DS, values_L2A_B04, values_L2A_B08)
-                temp_Rad = s2.cal_L1C_Rad(path_L1C_xml_DS, path_L1C_xml_TL, values_L1C_B08)
+                temp_Rad = s2.cal_L1C_rad(path_L1C_xml_DS, path_L1C_xml_TL, values_L1C_B08)
                 temp_NIRv = temp_NDVI * temp_Rad
                 print(f"The NIRv of {temp_site_name} has been calculated successfully!")
                 # Save NIRv.tif to cache folder
@@ -215,7 +216,7 @@ def main():
                 image_NIRv_ROI = rio.open(os.path.join(s2._path_cache,temp_S2_image_path,"NIRv ROI.tif"))
                 values_NIRv_ROI = image_NIRv_ROI.read(1)
                 temp_CV = s2.cal_CV(values_NIRv_ROI)
-                temp_Flag = s2.cal_Flag(temp_CV)
+                temp_Flag = s2.cal_flag(temp_CV)
                 list_CV.append(temp_CV)
                 list_flag.append(temp_Flag)
 
