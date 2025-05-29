@@ -12,11 +12,13 @@ For the output of S2 images, it contains names of site, numbers of valid pixels,
 
 ## Required Python Packages
 
+python == 3.11
+
 Note that other versions of these packages might work as well.  
 
 The version numbers listed below are the ones that were used during the development of the project.  
 
-1. Numpy >= 1.26.4
+1. numpy >= 1.26.4
 2. pandas >= 2.2.2
 3. shapely >= 2.0.5
 4. geopandas >= 1.0.1
@@ -25,6 +27,10 @@ The version numbers listed below are the ones that were used during the developm
 7. GDAL == 3.9.1
 8. rasterio == 1.3.10
 9. configparser >= 7.1.0
+10. xarray >=2024.10.0
+11. scipy >=1.14.1
+12. netcdf4 >=1.7.2
+13. gdal >=3.9.1
 
 ## Installation
 
