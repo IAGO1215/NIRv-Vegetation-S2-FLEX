@@ -1,5 +1,5 @@
-Site,Latitude,Longitude
-castelPorziano,41.7043,12.3573
-JolandaDiSavoia,44.874305,11.979201
-Nebraska,41.1797,-96.44039
-SanRossore,43.732,10.291
+site_code,latitude,longitude
+IT-CP2,41.7043,12.3573
+IT-JDS,44.874305,11.979201
+US-LIN,41.1797,-96.44039
+IT-SR2,43.732,10.291

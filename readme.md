@@ -126,11 +126,11 @@ Users can adjust the threshold of vegetation pixel optionally. This threshold wi
 1.1 Open "Optional Input.ini" in a text editor and find the line "threshold_Vegetation = ".  
 1.2 Enter a new threshold at the end of this line. The threshold must be a positive number.  
 1.3 Save the "Optional Input.ini".  
-1.4 If you want to set this threshold back to default, just remove the entered value and leave it empty just as before. 
+1.4 If you want to set this threshold back to default, just remove the entered value and leave it empty just as before.  
 
 ### 2. Threshold of Coefficient of Variation
 The default threshold of coefficient of variation (CV) is 0.2.  
-Users can adjust the threshold of CV optionally. The code will flag the values not greater than this threshold as 1, and the values greater than this threshold as 0.   
+Users can adjust the threshold of CV optionally. The code will flag the values not greater than this threshold as 1, and the values greater than this threshold as 0.  
 #### Set a new threshold for CV
 1.1 Open "Optional Input.ini" in a text editor and find the line "threshold_CV = ".  
 1.2 Enter a new threshold at the end of this line. The threshold must be a positive number.  
