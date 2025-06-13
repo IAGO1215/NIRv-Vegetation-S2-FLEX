@@ -1,0 +1,6 @@
+﻿site_code,latitude,longitude,reference_area(m),time_window(days),threshold_cloud(%),threshold_CV(%),vegetation_pixel(%)
+IT-CP2,41.7043,12.3573,900,15,50,20,50
+IT-JDS,44.874305,11.979201,900,15,50,20,50
+US-LIN,41.1797,-96.44039,900,15,50,20,50
+IT-SR2,43.732,10.291,900,20,50,20,50
+IT-JDS2,44.85314969,12.06555824,900,20,50,20,50

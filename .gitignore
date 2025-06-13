@@ -2,8 +2,8 @@ __pycache__/
 Archived/
 Cache/
 FLEX/
-Input S2 Images/
-Input FLEX Images/
+Input_S2_Images/
+Input_FLEX_Images/
 
 *.nc
 *.xml
