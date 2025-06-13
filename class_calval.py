@@ -29,6 +29,8 @@ class CalVal:
         self._path_input = os.path.join(self.path_main, "input")
         # The absolute path of the S2 images
         self._path_s2_input = os.path.join(self._path_main,"input_s2_images")
+        # The absolute path of the FLEX images
+        self._path_flex_input = os.path.join(self.path_main,"input_flex_images")
         # Output folder
         self._path_output = os.path.join(self.path_main, "output")
         # FLOX input
@@ -38,7 +40,9 @@ class CalVal:
         # The absolute path to the folder, where interim files are saved. 
         self._path_cache = os.path.join(self.path_main, "cache")
         # A boolean variable which determines whether the cache files will be deleted unpon the completion of the code. False by default. 
-        self._bool_delete_cache = True
+        self._bool_delete_cache = False
+        # Flex filename
+        self.flex_filename = None
 
         ### Automatically check
         self.__check_site_csv()
@@ -78,6 +82,10 @@ class CalVal:
     @property
     def path_s2_input(self):
         return self._path_s2_input
+    
+    @property
+    def path_flex_input(self):
+        return self._path_flex_input
 
     @property
     def path_output(self):
@@ -202,7 +210,7 @@ class FLEX(CalVal):
     def __init__(self):
         super().__init__()
         # Input FLEX Images path
-        self._path_flex_input = os.path.join(self.path_main,"input_flex_images")
+
         # ROI size
         self._area_roi = 900
         # Vegetation pixel percentage! 
@@ -219,11 +227,6 @@ class FLEX(CalVal):
             raise FileNotFoundError(f"There is no FLEX image found inside the 'Input FLEX Images' folder!")
         
     # ----------------------------- Getter and Setter ---------------------------- #
-
-    # Getter and setter for FLEX input path
-    @property
-    def path_flex_input(self):
-        return self._path_flex_input
     
     # Getter and setter for ROI
     @property
@@ -483,6 +486,11 @@ class FLEX(CalVal):
     def cal_statistic_flex_tf(self) -> None:
         # Read matchup.csv
         df_merge = pd.read_csv(os.path.join(self.path_output,"L2B_FLEX_FLOX_matchup.csv"))
+        # Remove empty rows
+        df_merge.replace('', np.nan, inplace=True)
+        df_merge.replace('N/A', np.nan, inplace=True)
+        df_merge.dropna(inplace = True)
+        # Get number of sites and iamges
         num_sites = df_merge['site_code'].nunique()
         num_flex_img = df_merge['date'].nunique()
         #
@@ -655,7 +663,9 @@ class S2(CalVal):
         self.path_l2a_b04, self.path_l2a_b08, self.path_l2a_mask, self.path_l2a_mtd_ds, self.path_l2a_mtd_tl = self.get_s2_l2a_paths()
         self.s2_crs = self.get_s2_crs()
         self.quantification_l2a, self.offset_l2a_b04, self.offset_l2a_b08 = self.get_s2_l2a_metadata()
+
     # ------------------------------ Public Methods ------------------------------ #
+
     def create_cache_subfolder(self, subpath) -> None:
         '''
         Create subfolder inside the cache folder. 
@@ -731,48 +741,45 @@ class S2(CalVal):
         Returns:
             gpd.GeoDataFrame: the new shapefile that will used to clip the S2 image. 
         '''
-        # Create a point shapefile of the site, using Lon-Lat
-        df_4326 = pd.DataFrame({
-            "Site": [self.site_name],
-            "Latitude": [self.site_lat],
-            "Longitude": [self.site_lon]
-        })
-        gdf_4326 = gpd.GeoDataFrame(
-            df_4326,
-            geometry = gpd.points_from_xy(df_4326['Longitude'], df_4326['Latitude']),
-            crs = "EPSG:4326"
-        )
-        # Convert the crs from lat-lon to that of the S2 image
-        gdf_s2_crs = gdf_4326.to_crs(self.s2_crs)
-        # Retrieve the coordinates in the new crs of our site
-        site_x = gdf_s2_crs.geometry.x.values[0]
-        site_y = gdf_s2_crs.geometry.y.values[0]
-        # Open a random S2 L2A image
-        img_l2a = rio.open(self.path_l2a_b04)
-        # Get the pixel index of the site
-        site_row, site_col = img_l2a.index(site_x, site_y)
-        # Get the center coordinate of the pixel where there is the site
-        site_pixel_x, site_pixel_y = img_l2a.xy(site_row, site_col)
-        # Calculate the "cardinal" distance
-        side_length_half = self.area / 2
-        if side_length_half % 2 == 0:
-            # If the half of the side length is even, we need to add another 5 meters to make sure the pixels on the borders will be included when we clip the raster images. 
-            length_cardinal = side_length_half + 5
+        # Open the FLEX image
+        temp_ds = xr.open_dataset(os.path.join(self.path_flex_input,self.site_name,self.flex_filename))
+        # Read longitudes and latitudes from the dataset
+        longitudes = temp_ds['longitude'].values
+        latitudes = temp_ds['latitude'].values
+        # Get the indices of the closest longitudes and latitudes to the site
+        lon_left = np.where(longitudes <= self.site_lon)[0][-1]
+        lon_right = np.where(longitudes >= self.site_lon)[0][0]
+        lat_top = np.where(latitudes >= self.site_lat)[0][-1]
+        lat_bottom = np.where(latitudes <= self.site_lat)[0][0]
+        # print(f"lon_left: {lon_left}, lon_right: {lon_right}, lat_top: {lat_top}, lat_bottom: {lat_bottom}")
+        # Now find the indices of the pixel where the site is located
+        if abs(self.site_lon - longitudes[lon_left]) < abs(self.site_lon - longitudes[lon_right]):
+            lon_index = lon_left
         else:
-            length_cardinal = side_length_half
-        site_x_left_new = site_pixel_x - length_cardinal
-        site_x_right_new = site_pixel_x + length_cardinal
-        site_y_top_new = site_pixel_y + length_cardinal
-        site_y_bottom_new = site_pixel_y - length_cardinal
-        # Create a bounding box
-        shp_new = shp.box(site_x_left_new, site_y_bottom_new, site_x_right_new, site_y_top_new)
-        # Create shapefile! 
-        gdf_new = gpd.GeoDataFrame(
-            pd.DataFrame({"Site Name": [self.site_name]}),
-            geometry=[shp_new],
-            crs = self.s2_crs
-        )
-        return gdf_new
+            lon_index = lon_right
+        if abs(self.site_lat - latitudes[lat_top]) < abs(self.site_lat - latitudes[lat_bottom]):
+            lat_index = lat_top
+        else:
+            lat_index = lat_bottom
+
+        subset = temp_ds.isel(latitude=slice(lat_index-1, lat_index+2),
+                        longitude=slice(lon_index-1, lon_index+2))
+        lon_dif = abs(longitudes[1] - longitudes[0]) / 2
+        lat_dif = abs(latitudes[1] - latitudes[0]) / 2
+        # Step 3: Build geometries (boxes) for each cell
+        miny = min(latitudes[lat_index - 1], latitudes[lat_index + 1]) - lat_dif
+        maxy = max(latitudes[lat_index - 1], latitudes[lat_index + 1]) + lat_dif
+        minx = min(longitudes[lon_index - 1],longitudes[lon_index + 1]) - lon_dif
+        maxx = max(longitudes[lon_index - 1],longitudes[lon_index + 1]) + lon_dif
+
+        geom = shp.geometry.box(minx, miny, maxx, maxy)
+        gdf_new = gpd.GeoDataFrame({'value': [0], 'geometry': geom}, crs="EPSG:4326")
+        gdf_new_utm = gdf_new.to_crs(self.s2_crs)
+
+        # Step 5: Export as Shapefile
+        gdf_new.to_file(os.path.join(self.path_cache,self.site_name,"roi_4326.shp"))
+        gdf_new_utm.to_file(os.path.join(self.path_cache,self.site_name,"roi_utm.shp"))
+        return gdf_new_utm
     
     def create_clipping_raster(self, list_indices = ['NDVI','NIRvREF','TF2']) -> None:
         '''
@@ -795,6 +802,10 @@ class S2(CalVal):
             "crs": src.crs,
             "transform": src.transform
         })
+        # ------------------------------- Read Mask ROI ------------------------------ #
+        img_mask = rio.open(os.path.join(self.path_cache,self.site_name,"Mask.tif"))
+        values_mask = img_mask.read(1)
+        values_mask = np.where(values_mask == 0, 1, np.nan)
 
         # ----------------------------------- NDVI ----------------------------------- #
         if not os.path.exists(os.path.join(self.path_cache, self.site_name)):
@@ -802,6 +813,7 @@ class S2(CalVal):
         # Calculate NDVI of L2A! 
         # NDVI = (B8 - B4) / (B8 + B4)
         temp_ndvi = ((values_l2a_b08 + self.offset_l2a_b08).astype(float) / self.quantification_l2a - (values_l2a_b04 + self.offset_l2a_b04).astype(float) / self.quantification_l2a) / ((values_l2a_b08 + self.offset_l2a_b08).astype(float) / self.quantification_l2a + (values_l2a_b04 + self.offset_l2a_b04).astype(float) / self.quantification_l2a )
+        temp_ndvi = temp_ndvi * values_mask
         if 'NDVI' in list_indices:
             # Save
             with rio.open(os.path.join(self.path_cache, self.site_name, "NDVI.tif"), 'w',**out_meta) as dest:
@@ -814,6 +826,7 @@ class S2(CalVal):
             # Calculate NIRvREF of L2A! 
             # NIRvREF = NDVI * B8
             temp_nirvref = temp_ndvi * (values_l2a_b08 + self.offset_l2a_b08).astype(float) / self.quantification_l2a
+            temp_nirvref = temp_nirvref * values_mask
             # Save
             with rio.open(os.path.join(self.path_cache, self.site_name, "NIRv.tif"), 'w',**out_meta) as dest:
                 dest.write(temp_nirvref, 1)
@@ -824,6 +837,7 @@ class S2(CalVal):
         if 'TF2' in list_indices:
             # Calculate transfer function 2! B4 * NIRvREF ^ 2
             temp_tf2 = (values_l2a_b04 + self.offset_l2a_b04).astype(float) / self.quantification_l2a * (temp_nirvref ** 2)
+            temp_tf2 = temp_tf2 * values_mask
             # Save
             with rio.open(os.path.join(self.path_cache, self.site_name, "TF2.tif"), 'w',**out_meta) as dest:
                 dest.write(temp_tf2, 1)
@@ -945,13 +959,13 @@ class S2(CalVal):
         return bool_pass, (self.area / 10) ** 2, 1   
 
     def cal_std(self, value):
-        return np.std(value)
+        return np.nanstd(value)
         
     def cal_avg(self, value):
-        return np.mean(value)
+        return np.nanmean(value)
 
     def cal_cv(self, value):
-        return np.std(value) / np.mean(value)
+        return np.nanstd(value) / np.nanmean(value)
     
     def cal_flag(self, value):
         if value <= self.threshold_cv:
@@ -959,11 +973,13 @@ class S2(CalVal):
         else:
             return 0
 
-    def cal_transfer_function(self, flex_date) -> None:
+    def cal_transfer_function(self, flex_date) -> bool:
         '''
         Application of transfer function, and then save the calculated averages into a temporary .csv file in "Cache\\TF
         Args:
             flex_date (int): The date of the current flex image. 
+        Returns:
+            bool: The validality of FLOX
         '''
         if not os.path.exists(os.path.join(self.path_cache, self.site_name, "NIRv_ROI.tif")) or not os.path.exists(os.path.join(self.path_cache, self.site_name, "TF2_ROI.tif")):
             self.create_clipping_raster(['NIRvREF','TF2'])
@@ -1014,12 +1030,18 @@ class S2(CalVal):
             value_s2_flox = value_tf1[site_row, site_col]
             # Get the value of the flox of the current index
             value_flox = df_flox_site[var_name].values[0].item()
-            # Apply transfer function 1
-            value_tf = value_tf1 / value_s2_flox * value_flox
-            # Calculate average
-            value_tf_avg = np.mean(value_tf)
-            # Update the dicct
-            temp_dict[var_name] = value_tf_avg
+            if value_s2_flox == np.nan or not value_s2_flox:
+                print(f"{self.site_name} is inside an invalid pixel. The transfer function won't be applied!")
+                temp_dict[var_name] = 'N/A'
+                bool_flox_invalid = True
+            else:
+                # Apply transfer function 1
+                value_tf = value_tf1 / value_s2_flox * value_flox
+                # Calculate average
+                value_tf_avg = np.nanmean(value_tf)
+                # Update the dicct
+                temp_dict[var_name] = value_tf_avg
+                bool_flox_invalid = False
         # ------------------------------------ TF2 ----------------------------------- #
         for var_name in ['SIF_O2B','SIF_RED_max']:
             # Get the pixel index of the site
@@ -1028,18 +1050,23 @@ class S2(CalVal):
             value_s2_flox = value_tf2[site_row, site_col]
             # Get the value of the flox of the current index
             value_flox = df_flox_site[var_name].values[0].item()
-            # Apply transfer function 1
-            value_tf = value_tf2 / value_s2_flox * value_flox
-            # Calculate average
-            value_tf_avg = np.mean(value_tf)
-            # Update the dicct
-            temp_dict[var_name] = value_tf_avg      
+            if value_s2_flox == np.nan or not value_s2_flox:
+                print(f"{self.site_name} is inside an invalid pixel. The transfer function won't be applied!")
+                temp_dict[var_name] = 'N/A'
+            else:
+                # Apply transfer function 2
+                value_tf = value_tf2 / value_s2_flox * value_flox
+                # Calculate average
+                value_tf_avg = np.nanmean(value_tf)
+                # Update the dicct
+                temp_dict[var_name] = value_tf_avg 
 
         # Save to local storage  
         df_dict = pd.DataFrame([temp_dict])
         if not os.path.exists(os.path.join(self.path_cache,"TF")):
             os.makedirs(os.path.join(self.path_cache,"TF"))
         df_dict.to_csv(os.path.join(self.path_cache,"TF",self.site_name + "_" + flex_date + ".csv"), index = False)
+        return bool_flox_invalid
 
     def remove_cache(self):
         # Delete cache folder? 

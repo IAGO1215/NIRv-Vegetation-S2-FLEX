@@ -66,6 +66,8 @@ def main():
     list_s2_ndvi_cv = []
     list_s2_ndvi_cv_flag = []
 
+    list_note = []
+
     # Some nested lists for empty output
     list_list_others = [list_flex_date, list_flex_time, list_flex_filename,
                         list_flex_valid_pixels, list_s2_filename, list_s2_date,
@@ -114,7 +116,8 @@ def main():
             print("-"*80)
             time.sleep(1)
             for temp_list in list_list_others:
-                temp_list.append(None)
+                temp_list.append('N/A')
+            list_note.append('No input FLEX images')
             continue
         # Check if there are any FLEX images inside the folder for the current site
         temp_site_flex_images_list = os.listdir(temp_site_path_input)
@@ -126,7 +129,8 @@ def main():
             print("-"*80)
             time.sleep(1)
             for temp_list in list_list_others:
-                temp_list.append(None)
+                temp_list.append('N/A')
+            list_note.append('No input FLEX images')
             continue
 
         # Real work begins here
@@ -146,7 +150,8 @@ def main():
                 print("-"*80)
                 time.sleep(1)
                 for temp_list in list_list_others:
-                    temp_list.append(None)
+                    temp_list.append('N/A')
+                list_note.append(f'No FLOX data on the same date {temp_flex_date}')
                 continue
 
             ## Start to process the FLEX image
@@ -168,6 +173,7 @@ def main():
             list_flex_time.append(temp_flex_filename.split('.')[0].split('_')[-1])
             list_flex_valid_pixels.append(100)
             print("\033[92m" + "*" * 5 + "FLEX IMAGES CHECK DONE" + "*" * 5 + "\033[0m")
+            time.sleep(1)
             # ----------------------------- FINDING S2 IMAGE ----------------------------- #
             print("\033[92m" + "*" * 5 + "SEARCHING ONE S2 IMAGE WITH THE NEAREST DATE" + "*" * 5 + "\033[0m")
             time.sleep(0.5)
@@ -181,7 +187,8 @@ def main():
                 print("-"*80)
                 time.sleep(1)
                 for temp_list in list_list_others_noflex:
-                    temp_list.append(None)
+                    temp_list.append('N/A')
+                list_note.append(f'No input Sentinel-2 images')
                 continue
             else:
                 print(f"Found {len(temp_s2_image_final)} Sentinel-2 images for the site {temp_site_name}!")
@@ -205,7 +212,8 @@ def main():
                     print("-"*80)
                     time.sleep(1)
                     for temp_list in list_list_others_noflex:
-                        temp_list.append(None)
+                        temp_list.append('N/A')
+                    list_note.append(f'No input Sentinel-2 images available within {temp_site_time_window_days} days')
                     continue
                 list_s2_filename.append(temp_s2_image_final)
                 list_s2_date.append(temp_s2_image_final.split('_')[2].split('T')[0])
@@ -219,6 +227,7 @@ def main():
                 s2.area = temp_site_roi
                 s2.threshold_cv = temp_site_threshold_cv
                 s2.cloud = temp_site_threshold_cloud
+                s2.flex_filename = temp_flex_filename
                 print("\033[92m" + "*" * 5 + "SEARCHING ONE S2 IMAGE WITH THE NEAREST DATE DONE" + "*" * 5 + "\033[0m")
                 time.sleep(1)
 
@@ -273,7 +282,11 @@ def main():
                     print("\033[92m" + "*" * 5 + "TRANSFER FUNCTION" + "*" * 5 + "\033[0m")
                     time.sleep(0.5)
                     print(f"Now applying transfer functions for the site {temp_site_name} and its FLEX image {temp_flex_filename}!")
-                    s2.cal_transfer_function(temp_flex_date)
+                    bool_flox_invalid = s2.cal_transfer_function(temp_flex_date)
+                    if bool_flox_invalid:
+                        list_note.append('FLOX is on an invalid pixel')
+                    else:
+                        list_note.append("N/A")
                     print("\033[92m" + "*" * 5 + "TRANSFER FUNCTION DONE" + "*" * 5 + "\033[0m")
 
                     temp_end_time = time.time()
@@ -283,16 +296,18 @@ def main():
                     print("-"*80)
                     s2.remove_cache()
                     time.sleep(1)
+
                 else:
                     print(f"\033[92mThe calculation and validation of site {temp_site_name} and its S2 image {temp_s2_image_final} has been skipped, due to exceeding invalid pixels!\033[0m")
-                    list_s2_nirv_avg.append(None)
-                    list_s2_nirv_std.append(None)
-                    list_s2_nirv_cv.append(None)
-                    list_s2_nirv_cv_flag.append(None)
-                    list_s2_ndvi_avg.append(None)
-                    list_s2_ndvi_std.append(None)
-                    list_s2_ndvi_cv.append(None)
-                    list_s2_ndvi_cv_flag.append(None)
+                    list_s2_nirv_avg.append('N/A')
+                    list_s2_nirv_std.append('N/A')
+                    list_s2_nirv_cv.append('N/A')
+                    list_s2_nirv_cv_flag.append('N/A')
+                    list_s2_ndvi_avg.append('N/A')
+                    list_s2_ndvi_std.append('N/A')
+                    list_s2_ndvi_cv.append('N/A')
+                    list_s2_ndvi_cv_flag.append('N/A')
+                    list_note.append(f"The percentage of invalid pixels exceeding {s2.cloud * 100}%")
                     print("-"*80)
                     time.sleep(1)
                     continue
@@ -328,7 +343,8 @@ def main():
         "s2_nirv_avg": list_s2_nirv_avg,
         "s2_nirv_sd": list_s2_nirv_std,
         "s2_nirv_cv": list_s2_nirv_cv,
-        "s2_nirv_cv_flag": list_s2_nirv_cv_flag
+        "s2_nirv_cv_flag": list_s2_nirv_cv_flag,
+        "note": list_note
     })
     df_log_report.to_csv(os.path.join(s2.path_output,"L2B_log_report.csv"), index = False)
 
