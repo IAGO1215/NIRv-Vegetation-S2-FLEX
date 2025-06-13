@@ -18,19 +18,17 @@ Note that other versions of these packages might work as well.
 
 The version numbers listed below are the ones that were used during the development of the project.  
 
-1. numpy >= 1.26.4
-2. pandas >= 2.2.2
-3. shapely >= 2.0.5
-4. geopandas >= 1.0.1
-5. lxml >= 5.2.2
-6. beautifulsoup4 >= 4.12.3
-7. GDAL == 3.9.1
-8. rasterio == 1.3.10
-9. configparser >= 7.1.0
-10. xarray >=2024.10.0
-11. scipy >=1.14.1
-12. netcdf4 >=1.7.2
-13. gdal >=3.9.1
+1. numpy >=1.26.4
+2. pandas >=2.2.2
+3. shapely >=2.0.5
+4. geopandas >=1.0.1
+5. lxml >=5.2.2
+6. beautifulsoup4 >=4.12.3
+7. GDAL ==3.9.1
+8. rasterio ==1.3.10
+9. xarray >=2024.10.0
+10. scipy >=1.14.1
+11. netcdf4 >=1.7.2
 
 ## Installation
 

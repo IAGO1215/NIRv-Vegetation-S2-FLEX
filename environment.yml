@@ -15,4 +15,3 @@ dependencies:
   - xarray >=2024.10.0
   - scipy >=1.14.1
   - netcdf4 >=1.7.2
-  - gdal >=3.9.1
