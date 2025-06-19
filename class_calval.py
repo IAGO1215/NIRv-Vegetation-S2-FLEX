@@ -40,7 +40,7 @@ class CalVal:
         # The absolute path to the folder, where interim files are saved. 
         self._path_cache = os.path.join(self.path_main, "cache")
         # A boolean variable which determines whether the cache files will be deleted unpon the completion of the code. False by default. 
-        self._bool_delete_cache = True
+        self._bool_delete_cache = False
         # Flex filename
         self.flex_filename = None
 
@@ -436,16 +436,7 @@ class FLEX(CalVal):
             ['SIF_RED_max_wvl_flox', 'SIF_RED_max_wvl_flex'],
             ['SIF_O2B_flox', 'SIF_O2B_flex'],
             ['SIF_O2A_flox', 'SIF_O2A_flex'],
-            ['SIF_int_flox', 'SIF_int_flex'],
-            ['SIF_FARRED_max_un_flox', 'SIF_FARRED_max_un_flex'],
-            ['SIF_FARRED_max_wvl_un_flox', 'SIF_FARRED_max_wvl_un_flex'],
-            ['SIF_RED_max_un_flox', 'SIF_RED_max_un_flex'],
-            ['SIF_RED_max_wvl_un_flox', 'SIF_RED_max_wvl_un_flex'],
-            ['SIF_O2B_un_flox', 'SIF_O2B_un_flex'],
-            ['SIF_O2A_un_flox', 'SIF_O2A_un_flex'],
-            ['SIF_int_un_flox', 'SIF_int_un_flex']]
-        list_num_sites = []
-        list_num_flex_img = []
+            ['SIF_int_flox', 'SIF_int_flex']]
         list_r_2 = []
         list_rmse = []
         list_mean_residual = []
@@ -453,8 +444,6 @@ class FLEX(CalVal):
         list_slope = []
         list_intercept = []
         for pair in column_pairs:
-            list_num_sites.append(num_sites)
-            list_num_flex_img.append(num_flex_img)
             # print(f"Calculating statistics for {pair[0]} and {pair[1]}...")
             temp_r_2, temp_slope, temp_intercept = self.cal_r_2(df_merge[pair[0]],df_merge[pair[1]])
             temp_rmse = self.cal_rmse(df_merge[pair[0]],df_merge[pair[1]])
@@ -466,16 +455,18 @@ class FLEX(CalVal):
             list_random_uncertainty.append(temp_random_uncertainty)
             list_slope.append(temp_slope)
             list_intercept.append(temp_intercept)
-        df_output = pd.DataFrame({
-            "SIF metrics": ["SIF_FARRED_max","SIF_FARRED_max_wvl","SIF_RED_max","SIF_RED_max_wvl","SIF_O2B","SIF_O2A","SIF_int","SIF_FARRED_max_un","SIF_FARRED_max_wvl_un","SIF_RED_max_un","SIF_RED_max_wvl_un","SIF_O2B_un","SIF_O2A_un","SIF_int_un"],
-            'n_sites': list_num_sites,
-            'n_images': list_num_flex_img,
-            'R^2': list_r_2,
-            'RMSE': list_rmse,
-            'Bias': list_mean_residual,
-            'Slope': list_slope,
-            'Intercept': list_intercept,
-            'Random uncertainty': list_random_uncertainty
+        df_output = pd.DataFrame(
+            {
+            "Metrics": ['R^2', 'RMSE', 'Bias', 'Slope', 'Intercept', 'Random uncertainty'],
+            'n_sites': [num_sites] * 6,
+            'n_images': [num_flex_img] * 6,
+            'SIF_FARRED_max': [list_r_2[0], list_rmse[0], list_mean_residual[0], list_slope[0], list_intercept[0], list_random_uncertainty[0]],
+            'SIF_FARRED_max_wvl': [list_r_2[1], list_rmse[1], list_mean_residual[1], list_slope[1], list_intercept[1], list_random_uncertainty[1]],
+            'SIF_RED_max': [list_r_2[2], list_rmse[2], list_mean_residual[2], list_slope[2], list_intercept[2], list_random_uncertainty[2]],
+            'SIF_RED_max_wvl': [list_r_2[3], list_rmse[3], list_mean_residual[3], list_slope[3], list_intercept[3], list_random_uncertainty[3]],
+            'SIF_O2B': [list_r_2[4], list_rmse[4], list_mean_residual[4], list_slope[4], list_intercept[4], list_random_uncertainty[4]],
+            'SIF_O2A': [list_r_2[5], list_rmse[5], list_mean_residual[5], list_slope[5], list_intercept[5], list_random_uncertainty[5]],
+            'SIF_int': [list_r_2[6], list_rmse[6], list_mean_residual[6], list_slope[6], list_intercept[6], list_random_uncertainty[6]]
         })
         df_output.to_csv(os.path.join(self.path_output,"L2B_1P_validation_report.csv"), index = False)
     
@@ -495,14 +486,7 @@ class FLEX(CalVal):
             ['SIF_RED_max_TF', 'SIF_RED_max_flex'],
             ['SIF_O2B_TF', 'SIF_O2B_flex'],
             ['SIF_O2A_TF', 'SIF_O2A_flex'],
-            ['SIF_int_TF', 'SIF_int_flex'],
-            ['SIF_FARRED_max_un_TF', 'SIF_FARRED_max_un_flex'],
-            ['SIF_RED_max_un_TF', 'SIF_RED_max_un_flex'],
-            ['SIF_O2B_un_TF', 'SIF_O2B_un_flex'],
-            ['SIF_O2A_un_TF', 'SIF_O2A_un_flex'],
-            ['SIF_int_un_TF', 'SIF_int_un_flex']]
-        list_num_sites = []
-        list_num_flex_img = []
+            ['SIF_int_TF', 'SIF_int_flex']]
         list_r_2 = []
         list_rmse = []
         list_mean_residual = []
@@ -510,8 +494,6 @@ class FLEX(CalVal):
         list_slope = []
         list_intercept = []
         for pair in column_pairs:
-            list_num_sites.append(num_sites)
-            list_num_flex_img.append(num_flex_img)
             # print(f"Calculating statistics for {pair[0]} and {pair[1]}...")
             temp_r_2, temp_slope, temp_intercept = self.cal_r_2(df_merge[pair[0]],df_merge[pair[1]])
             temp_rmse = self.cal_rmse(df_merge[pair[0]],df_merge[pair[1]])
@@ -523,16 +505,16 @@ class FLEX(CalVal):
             list_random_uncertainty.append(temp_random_uncertainty)
             list_slope.append(temp_slope)
             list_intercept.append(temp_intercept)
-        df_output = pd.DataFrame({
-            "SIF metrics": ["SIF_FARRED_max","SIF_RED_max","SIF_O2B","SIF_O2A","SIF_int","SIF_FARRED_max_un","SIF_RED_max_un","SIF_O2B_un","SIF_O2A_un","SIF_int_un"],
-            'n_sites': list_num_sites,
-            'n_images': list_num_flex_img,
-            'R^2': list_r_2,
-            'RMSE': list_rmse,
-            'Bias': list_mean_residual,
-            'Slope': list_slope,
-            'Intercept': list_intercept,
-            'Random uncertainty': list_random_uncertainty
+        df_output = pd.DataFrame(
+            {
+            "Metrics": ['R^2', 'RMSE', 'Bias', 'Slope', 'Intercept', 'Random uncertainty'],
+            'n_sites': [num_sites] * 6,
+            'n_images': [num_flex_img] * 6,
+            'SIF_FARRED_max': [list_r_2[0], list_rmse[0], list_mean_residual[0], list_slope[0], list_intercept[0], list_random_uncertainty[0]],
+            'SIF_RED_max': [list_r_2[1], list_rmse[1], list_mean_residual[1], list_slope[1], list_intercept[1], list_random_uncertainty[1]],
+            'SIF_O2B': [list_r_2[2], list_rmse[2], list_mean_residual[2], list_slope[2], list_intercept[2], list_random_uncertainty[2]],
+            'SIF_O2A': [list_r_2[3], list_rmse[3], list_mean_residual[3], list_slope[3], list_intercept[3], list_random_uncertainty[3]],
+            'SIF_int': [list_r_2[4], list_rmse[4], list_mean_residual[4], list_slope[4], list_intercept[4], list_random_uncertainty[4]]
         })
         df_output.to_csv(os.path.join(self.path_output,"L2B_1P_TF_validation_report.csv"), index = False)
 
@@ -757,7 +739,7 @@ class S2(CalVal):
             lat_index = lat_top
         else:
             lat_index = lat_bottom
-        print(f"Site {self.site_name} is located at pixel: {lat_index}, {lon_index} with coordinates: {latitudes[lat_index]}, {longitudes[lon_index]}")
+        # print(f"Site {self.site_name} is located at pixel: {lat_index}, {lon_index} with coordinates: {latitudes[lat_index]}, {longitudes[lon_index]}")
         lat_dif = abs(latitudes[1] - latitudes[0]) / 2.0
         lon_dif = abs(longitudes[1] - longitudes[0]) / 2.0
         # Create a box geometry
@@ -779,7 +761,7 @@ class S2(CalVal):
             miny = min(latitudes[lat_index_600], latitudes[lat_index]) - lat_dif
             maxy = max(latitudes[lat_index_600], latitudes[lat_index]) + lat_dif
             minx = min(longitudes[lon_index_600], longitudes[lon_index]) - lon_dif
-            maxx = min(longitudes[lon_index_600], longitudes[lon_index]) + lon_dif
+            maxx = max(longitudes[lon_index_600], longitudes[lon_index]) + lon_dif
             # print(f"Creating a shapefile for a 600 m² ROI at {self.site_name} with coordinates: {minx}, {miny}, {maxx}, {maxy}")
         else:  
             miny = min(latitudes[lat_index - 1], latitudes[lat_index + 1]) - lat_dif
