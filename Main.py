@@ -258,11 +258,11 @@ def main():
                     temp_ndvi_std, temp_ndvi_avg, temp_ndvi_cv, temp_ndvi_flag, temp_nirv_std, temp_nirv_avg, temp_nirv_cv, temp_nirv_flag = s2.cal_l2a_indices()
                     list_s2_ndvi_std.append(temp_ndvi_std)
                     list_s2_ndvi_avg.append(temp_ndvi_avg)
-                    list_s2_ndvi_cv.append(temp_ndvi_cv)
+                    list_s2_ndvi_cv.append(temp_ndvi_cv * 100)
                     list_s2_ndvi_cv_flag.append(temp_ndvi_flag)
                     list_s2_nirv_std.append(temp_nirv_std)
                     list_s2_nirv_avg.append(temp_nirv_avg)
-                    list_s2_nirv_cv.append(temp_nirv_cv)
+                    list_s2_nirv_cv.append(temp_nirv_cv * 100)
                     list_s2_nirv_cv_flag.append(temp_nirv_flag)
                     print("\033[92m" + "*" * 5 + "S2 NDVI & NIRvREF Calculation DONE" + "*" * 5 + "\033[0m")
 
@@ -370,7 +370,7 @@ def main():
         if csv_file.endswith('.csv'):
             list_csv_file.append(os.path.join(s2.path_cache,'FLEX', 'sif', csv_file))
     df_sif = pd.concat([pd.read_csv(f) for f in list_csv_file], ignore_index=True)
-    df_sif.to_csv(os.path.join(s2.path_output, "L2B_FLEX_table.csv"), index=False)
+    df_sif.to_csv(os.path.join(s2.path_cache, "L2B_FLEX_table.csv"), index=False)
 
     flex.create_matchup_report()
     flex.cal_statistic_flex_flox()

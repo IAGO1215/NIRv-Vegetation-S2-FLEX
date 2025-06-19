@@ -40,7 +40,7 @@ class CalVal:
         # The absolute path to the folder, where interim files are saved. 
         self._path_cache = os.path.join(self.path_main, "cache")
         # A boolean variable which determines whether the cache files will be deleted unpon the completion of the code. False by default. 
-        self._bool_delete_cache = False
+        self._bool_delete_cache = True
         # Flex filename
         self.flex_filename = None
 
@@ -142,6 +142,8 @@ class CalVal:
         
         # reference_area
         site_roi = df_sites["reference_area(m)"]
+        if not site_roi.isin([300, 600, 900]).all():
+            raise ValueError("The input reference area(m) can only be 300, 600 or 900")
 
         # time_window_days
         site_time_window = df_sites["time_window(days)"]
@@ -174,16 +176,16 @@ class CalVal:
         df_tf = pd.concat((pd.read_csv(os.path.join(self.path_cache,'TF',csv_file)) for csv_file in os.listdir(os.path.join(self.path_cache,'TF'))), ignore_index=True)
         df_tf['date'] = df_tf['date'].astype(str)
         df_tf.rename(columns={
-            "SIF_O2A": "SIF_O2A_tf",
-            "SIF_FARRED_max": "SIF_FARRED_max_tf",
-            "SIF_int": "SIF_int_tf",
-            "SIF_O2B": "SIF_O2B_tf",
-            "SIF_RED_max": "SIF_RED_max_tf",
-            "SIF_O2A_un": "SIF_O2A_un_tf",
-            "SIF_FARRED_max_un": "SIF_FARRED_max_un_tf",
-            "SIF_int_un": "SIF_int_un_tf",
-            "SIF_O2B_un": "SIF_O2B_un_tf",
-            "SIF_RED_max_un": "SIF_RED_max_un_tf"
+            "SIF_O2A": "SIF_O2A_TF",
+            "SIF_FARRED_max": "SIF_FARRED_max_TF",
+            "SIF_int": "SIF_int_TF",
+            "SIF_O2B": "SIF_O2B_TF",
+            "SIF_RED_max": "SIF_RED_max_TF",
+            "SIF_O2A_un": "SIF_O2A_un_TF",
+            "SIF_FARRED_max_un": "SIF_FARRED_max_un_TF",
+            "SIF_int_un": "SIF_int_un_TF",
+            "SIF_O2B_un": "SIF_O2B_un_TF",
+            "SIF_RED_max_un": "SIF_RED_max_un_TF"
         }, inplace = True)
         # Read FLOX
         df_flox = pd.read_csv(self.file_flox_csv, sep = ';')
@@ -193,14 +195,14 @@ class CalVal:
         # Convert to string date format
         df_flox['date'] = df_flox['date'].dt.strftime('%Y%m%d')
         # Read FLEX
-        df_flex = pd.read_csv(os.path.join(self.path_output,"L2B_FLEX_table.csv"))
-        df_flex = df_flex[['site_code','flex_date','SIF_FARRED_max','SIF_FARRED_max_wvl','SIF_RED_max','SIF_RED_max_wvl','SIF_O2B','SIF_O2A','SIF_int','SIF_FARRED_max_un','SIF_FARRED_max_wvl_un','SIF_RED_max_un','SIF_RED_max_wvl_un','SIF_O2B_un','SIF_O2A_un','SIF_int_un']]
+        df_flex = pd.read_csv(os.path.join(self.path_cache,"L2B_FLEX_table.csv"))
+        df_flex = df_flex[['site_code','latitude','longitude','flex_date','flex_time','flex_filename','s2_filename','SIF_FARRED_max','SIF_FARRED_max_wvl','SIF_RED_max','SIF_RED_max_wvl','SIF_O2B','SIF_O2A','SIF_int','SIF_FARRED_max_un','SIF_FARRED_max_wvl_un','SIF_RED_max_un','SIF_RED_max_wvl_un','SIF_O2B_un','SIF_O2A_un','SIF_int_un']]
         df_flex.rename(columns={'flex_date': 'date'}, inplace=True)
         df_flex['date'] = df_flex['date'].astype(str)
         # Merge into a single dataframe
         df_merge = pd.merge(df_flox,df_flex,how='inner',on=['site_code','date'], suffixes=('_flox','_flex'))
         df_merge = pd.merge(df_merge,df_tf,how='inner',on=['site_code','date'])
-        df_merge.to_csv(os.path.join(self.path_output,"L2B_FLEX_FLOX_matchup.csv"), index=False)
+        df_merge.to_csv(os.path.join(self.path_output,"L2B_1P_matchup.csv"), index=False, na_rep= 'N/A')
 
 class FLEX(CalVal):
 
@@ -326,11 +328,8 @@ class FLEX(CalVal):
                     lon_index_start = min(lon_index_600, lon_index)
                     lon_index_end = min(lon_index_600, lon_index)
                     temp_array = temp_ds[var_name][lat_index_start:(lat_index_end+1),lon_index_start:(lon_index_end+1)].values
-                elif roi == 900:
-                    temp_array = temp_ds[var_name][(lat_index-1):(lat_index+2),(lon_index-1):(lon_index+2)].values
                 else:
                     temp_array = temp_ds[var_name][(lat_index-1):(lat_index+2),(lon_index-1):(lon_index+2)].values
-                    print(f"The ROI {roi} m x {roi} m is greater than 900m x 900m. The code only supports 300m, 600m and 900m ROI. So now the calculation will be performed on a 900m ROI. ")
                 temp_list_sif_name.append(var_name)
                 temp_avg = np.average(temp_array).item()
                 temp_list_sif_avg.append(temp_avg)
@@ -409,11 +408,8 @@ class FLEX(CalVal):
                     lon_index_start = min(lon_index_600, lon_index)
                     lon_index_end = min(lon_index_600, lon_index)
                     temp_array = temp_ds[var_name][lat_index_start:(lat_index_end+1),lon_index_start:(lon_index_end+1)].values
-                elif roi == 900:
-                    temp_array = temp_ds[var_name][(lat_index-1):(lat_index+2),(lon_index-1):(lon_index+2)].values
                 else:
                     temp_array = temp_ds[var_name][(lat_index-1):(lat_index+2),(lon_index-1):(lon_index+2)].values
-                    print(f"The ROI {roi} m x {roi} m is greater than 900m x 900m. The code only supports 300m, 600m and 900m ROI. So now the calculation will be performed on a 900m ROI. ")
                 temp_list_sif_name.append(var_name)
                 temp_avg = np.average(temp_array).item()
                 temp_list_sif_avg.append(temp_avg)
@@ -429,7 +425,7 @@ class FLEX(CalVal):
     
     def cal_statistic_flex_flox(self) -> None:
         # Read matchup.csv
-        df_merge = pd.read_csv(os.path.join(self.path_output,"L2B_FLEX_FLOX_matchup.csv"))
+        df_merge = pd.read_csv(os.path.join(self.path_output,"L2B_1P_matchup.csv"))
         num_sites = df_merge['site_code'].nunique()
         num_flex_img = df_merge['date'].nunique()
         #
@@ -481,11 +477,11 @@ class FLEX(CalVal):
             'Intercept': list_intercept,
             'Random uncertainty': list_random_uncertainty
         })
-        df_output.to_csv(os.path.join(self.path_output,"L2B_validation_report_flex_flox.csv"), index = False)
+        df_output.to_csv(os.path.join(self.path_output,"L2B_1P_validation_report.csv"), index = False)
     
     def cal_statistic_flex_tf(self) -> None:
         # Read matchup.csv
-        df_merge = pd.read_csv(os.path.join(self.path_output,"L2B_FLEX_FLOX_matchup.csv"))
+        df_merge = pd.read_csv(os.path.join(self.path_output,"L2B_1P_matchup.csv"))
         # Remove empty rows
         df_merge.replace('', np.nan, inplace=True)
         df_merge.replace('N/A', np.nan, inplace=True)
@@ -495,16 +491,16 @@ class FLEX(CalVal):
         num_flex_img = df_merge['date'].nunique()
         #
         column_pairs = [
-            ['SIF_FARRED_max_tf', 'SIF_FARRED_max_flex'],
-            ['SIF_RED_max_tf', 'SIF_RED_max_flex'],
-            ['SIF_O2B_tf', 'SIF_O2B_flex'],
-            ['SIF_O2A_tf', 'SIF_O2A_flex'],
-            ['SIF_int_tf', 'SIF_int_flex'],
-            ['SIF_FARRED_max_un_tf', 'SIF_FARRED_max_un_flex'],
-            ['SIF_RED_max_un_tf', 'SIF_RED_max_un_flex'],
-            ['SIF_O2B_un_tf', 'SIF_O2B_un_flex'],
-            ['SIF_O2A_un_tf', 'SIF_O2A_un_flex'],
-            ['SIF_int_un_tf', 'SIF_int_un_flex']]
+            ['SIF_FARRED_max_TF', 'SIF_FARRED_max_flex'],
+            ['SIF_RED_max_TF', 'SIF_RED_max_flex'],
+            ['SIF_O2B_TF', 'SIF_O2B_flex'],
+            ['SIF_O2A_TF', 'SIF_O2A_flex'],
+            ['SIF_int_TF', 'SIF_int_flex'],
+            ['SIF_FARRED_max_un_TF', 'SIF_FARRED_max_un_flex'],
+            ['SIF_RED_max_un_TF', 'SIF_RED_max_un_flex'],
+            ['SIF_O2B_un_TF', 'SIF_O2B_un_flex'],
+            ['SIF_O2A_un_TF', 'SIF_O2A_un_flex'],
+            ['SIF_int_un_TF', 'SIF_int_un_flex']]
         list_num_sites = []
         list_num_flex_img = []
         list_r_2 = []
@@ -538,7 +534,7 @@ class FLEX(CalVal):
             'Intercept': list_intercept,
             'Random uncertainty': list_random_uncertainty
         })
-        df_output.to_csv(os.path.join(self.path_output,"L2B_validation_report_flex_tf.csv"), index = False)
+        df_output.to_csv(os.path.join(self.path_output,"L2B_1P_TF_validation_report.csv"), index = False)
 
     def cal_r_2(self, x: np.array, y: np.array) -> float:
         # Fit linear model
@@ -753,30 +749,50 @@ class S2(CalVal):
         lat_bottom = np.where(latitudes <= self.site_lat)[0][0]
         # print(f"lon_left: {lon_left}, lon_right: {lon_right}, lat_top: {lat_top}, lat_bottom: {lat_bottom}")
         # Now find the indices of the pixel where the site is located
-        if abs(self.site_lon - longitudes[lon_left]) < abs(self.site_lon - longitudes[lon_right]):
+        if abs(self.site_lon - longitudes[lon_left]) <= abs(self.site_lon - longitudes[lon_right]):
             lon_index = lon_left
         else:
             lon_index = lon_right
-        if abs(self.site_lat - latitudes[lat_top]) < abs(self.site_lat - latitudes[lat_bottom]):
+        if abs(self.site_lat - latitudes[lat_top]) <= abs(self.site_lat - latitudes[lat_bottom]):
             lat_index = lat_top
         else:
             lat_index = lat_bottom
-
-        subset = temp_ds.isel(latitude=slice(lat_index-1, lat_index+2),
-                        longitude=slice(lon_index-1, lon_index+2))
-        lon_dif = abs(longitudes[1] - longitudes[0]) / 2
-        lat_dif = abs(latitudes[1] - latitudes[0]) / 2
-        # Step 3: Build geometries (boxes) for each cell
-        miny = min(latitudes[lat_index - 1], latitudes[lat_index + 1]) - lat_dif
-        maxy = max(latitudes[lat_index - 1], latitudes[lat_index + 1]) + lat_dif
-        minx = min(longitudes[lon_index - 1],longitudes[lon_index + 1]) - lon_dif
-        maxx = max(longitudes[lon_index - 1],longitudes[lon_index + 1]) + lon_dif
-
+        print(f"Site {self.site_name} is located at pixel: {lat_index}, {lon_index} with coordinates: {latitudes[lat_index]}, {longitudes[lon_index]}")
+        lat_dif = abs(latitudes[1] - latitudes[0]) / 2.0
+        lon_dif = abs(longitudes[1] - longitudes[0]) / 2.0
+        # Create a box geometry
+        if self.area == 300:
+            miny = latitudes[lat_index] - lat_dif
+            maxy = latitudes[lat_index] + lat_dif
+            minx = longitudes[lon_index] - lon_dif
+            maxx = longitudes[lon_index] + lon_dif
+            # print(f"Creating a shapefile for a 300 m² ROI at {self.site_name} with coordinates: {minx}, {miny}, {maxx}, {maxy}")
+        elif self.area == 600:
+            if abs(self.site_lat - latitudes[lat_index - 1]) < abs(self.site_lat - latitudes[lat_index + 1]):
+                lat_index_600 = lat_index - 1
+            else:
+                lat_index_600 = lat_index + 1
+            if abs(self.site_lon - longitudes[lon_index - 1]) < abs(self.site_lon - longitudes[lon_index + 1]):
+                lon_index_600 = lon_index - 1
+            else:
+                lon_index_600 = lon_index + 1
+            miny = min(latitudes[lat_index_600], latitudes[lat_index]) - lat_dif
+            maxy = max(latitudes[lat_index_600], latitudes[lat_index]) + lat_dif
+            minx = min(longitudes[lon_index_600], longitudes[lon_index]) - lon_dif
+            maxx = min(longitudes[lon_index_600], longitudes[lon_index]) + lon_dif
+            # print(f"Creating a shapefile for a 600 m² ROI at {self.site_name} with coordinates: {minx}, {miny}, {maxx}, {maxy}")
+        else:  
+            miny = min(latitudes[lat_index - 1], latitudes[lat_index + 1]) - lat_dif
+            maxy = max(latitudes[lat_index - 1], latitudes[lat_index + 1]) + lat_dif
+            minx = min(longitudes[lon_index - 1],longitudes[lon_index + 1]) - lon_dif
+            maxx = max(longitudes[lon_index - 1],longitudes[lon_index + 1]) + lon_dif
+            # print(f"Creating a shapefile for a 900 m² ROI at {self.site_name} with coordinates: {minx}, {miny}, {maxx}, {maxy}")
+        # Create a shapefile!
         geom = shp.geometry.box(minx, miny, maxx, maxy)
         gdf_new = gpd.GeoDataFrame({'value': [0], 'geometry': geom}, crs="EPSG:4326")
         gdf_new_utm = gdf_new.to_crs(self.s2_crs)
 
-        # Step 5: Export as Shapefile
+        # Export shapefiles
         gdf_new.to_file(os.path.join(self.path_cache,self.site_name,"roi_4326.shp"))
         gdf_new_utm.to_file(os.path.join(self.path_cache,self.site_name,"roi_utm.shp"))
         return gdf_new_utm
@@ -1030,7 +1046,7 @@ class S2(CalVal):
             value_s2_flox = value_tf1[site_row, site_col]
             # Get the value of the flox of the current index
             value_flox = df_flox_site[var_name].values[0].item()
-            if value_s2_flox == np.nan or not value_s2_flox:
+            if isinstance(value_s2_flox, np.float64) and np.isnan(value_s2_flox) or not value_s2_flox:
                 print(f"{self.site_name} is inside an invalid pixel. The transfer function won't be applied!")
                 temp_dict[var_name] = 'N/A'
                 bool_flox_invalid = True
@@ -1040,7 +1056,7 @@ class S2(CalVal):
                 # Calculate average
                 value_tf_avg = np.nanmean(value_tf)
                 # Update the dicct
-                temp_dict[var_name] = value_tf_avg
+                temp_dict[var_name] = str(value_tf_avg)
                 bool_flox_invalid = False
         # ------------------------------------ TF2 ----------------------------------- #
         for var_name in ['SIF_O2B','SIF_RED_max']:
@@ -1050,7 +1066,7 @@ class S2(CalVal):
             value_s2_flox = value_tf2[site_row, site_col]
             # Get the value of the flox of the current index
             value_flox = df_flox_site[var_name].values[0].item()
-            if value_s2_flox == np.nan or not value_s2_flox:
+            if isinstance(value_s2_flox, np.float64) and np.isnan(value_s2_flox) or not value_s2_flox:
                 print(f"{self.site_name} is inside an invalid pixel. The transfer function won't be applied!")
                 temp_dict[var_name] = 'N/A'
             else:
@@ -1059,13 +1075,13 @@ class S2(CalVal):
                 # Calculate average
                 value_tf_avg = np.nanmean(value_tf)
                 # Update the dicct
-                temp_dict[var_name] = value_tf_avg 
+                temp_dict[var_name] = str(value_tf_avg)
 
         # Save to local storage  
         df_dict = pd.DataFrame([temp_dict])
         if not os.path.exists(os.path.join(self.path_cache,"TF")):
             os.makedirs(os.path.join(self.path_cache,"TF"))
-        df_dict.to_csv(os.path.join(self.path_cache,"TF",self.site_name + "_" + flex_date + ".csv"), index = False)
+        df_dict.to_csv(os.path.join(self.path_cache,"TF",self.site_name + "_" + flex_date + ".csv"), index = False, na_rep= 'N/A')
         return bool_flox_invalid
 
     def remove_cache(self):
